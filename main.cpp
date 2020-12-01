@@ -1,13 +1,32 @@
 #include "tcp-block.h"
 
 int main(int argc, char* argv[]) {
-    uint32_t attack_ip;
-    uint8_t attack_mac[6];
+    uint8_t mac[6];
+    uint8_t pattern[2048];
 
-    get_attacker_ip(&attack_ip, argv[1]);
-    // uint8_t* tmp;
-    // tmp = (uint8_t *)&attack_ip;
-    // for(int i=0; i<4; i++) printf("%d ", tmp[i]);
-    get_attacker_mac(attack_mac, argv[1]);
-    //for(int i=0; i<6; i++) printf("%x ", attack_mac[i]);
+    if  (argc != 3) {
+        usage();
+        return -1;
+    }
+
+    char* dev = argv[1];
+    int pattern_len = strlen(argv[2])
+    memcpy(pattern, argv[2], pattern_len);
+
+    char errbuf[PCAP_ERRBUF_SIZE];
+	pcap_t* handle = pcap_open_live(dev, BUFSIZ, 1, 1, errbuf);
+
+    if (handle == nullptr) {
+        fprintf(stderr, "Device open error! %s return nullptr : %s\n", dev, errbuf);
+        return -1;
+    }
+
+    get_attacker_mac(mac, dev);
+    // for(int i=0; i<6; i++) printf("%x ", attack_mac[i]);
+
+    block_process(handle, mac, pattern, pattern_len);
+    
+    pcap_close(handle);
+
+    return 0;
 }
