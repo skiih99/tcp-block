@@ -10,7 +10,7 @@ int main(int argc, char* argv[]) {
     }
 
     char* dev = argv[1];
-    int pattern_len = strlen(argv[2])
+    int pattern_len = strlen(argv[2]);
     memcpy(pattern, argv[2], pattern_len);
 
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -21,8 +21,10 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    get_attacker_mac(mac, dev);
+    get_my_mac(mac, dev);
     // for(int i=0; i<6; i++) printf("%x ", attack_mac[i]);
+
+    //for(int i=0; i<pattern_len; i++) printf("%c", pattern[i]);
 
     block_process(handle, mac, pattern, pattern_len);
     
