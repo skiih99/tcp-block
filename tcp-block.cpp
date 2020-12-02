@@ -60,6 +60,8 @@ void forward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct e
     int org_totlen = ntohs(org_ip->len);
     int org_datalen = org_totlen - org_iplen - org_tcplen;
 
+    printf("%d\n", org_datalen);
+
     uint8_t sendpkt[ethhdr_size + org_iplen + org_tcplen];
     // struct ethhdr* sendeth = (struct ethhdr*)sendpkt;
     // struct iphdr* sendip = (struct iphdr*)(sendpkt + ethhdr_size);
@@ -69,16 +71,34 @@ void forward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct e
     struct tcphdr* sendtcp = (struct tcphdr *)malloc(sizeof(struct tcphdr));
 
     memcpy(sendeth, org_eth, ethhdr_size);
-    memcpy(sendip, org_ip, sizeof(struct iphdr));
-    memcpy(sendtcp, org_tcp, sizeof(struct tcphdr));
+    // memcpy(sendip, org_ip, sizeof(struct iphdr));
+    // memcpy(sendtcp, org_tcp, sizeof(struct tcphdr));
+
+    memset(sendip, 0, sizeof(struct iphdr));
+    memset(sendtcp, 0, sizeof(struct tcphdr));
+    
 
     memcpy(sendeth->src_host, mac, 6);
+
+    sendip->info = org_ip->info;
     sendip->len = htons(sizeof(struct iphdr) + sizeof(struct tcphdr));
+    sendip->ttl = org_ip->ttl;
+    sendip->protocol = org_ip->protocol;
+    sendip->src_ip = org_ip->src_ip;
+    sendip->dst_ip = org_ip->dst_ip;
+
     sendip->checksum = 0;
     uint16_t temp = htons(checksum_ip(sendip, sizeof(struct iphdr)));
     sendip->checksum = temp;
+
+    sendtcp->src_port = org_tcp->src_port;
+    sendtcp->dst_port = org_tcp->dst_port;
     sendtcp->seq = htonl(ntohl(org_tcp->seq) + org_datalen);
+    sendtcp->ack = org_tcp->ack;
+    sendtcp->len = org_tcp->len;
     sendtcp->flag = 0x04; // flag : 000100, rst
+    sendtcp->window_size = org_tcp->window_size;
+
     uint8_t imsitcp[org_tcplen];
     memcpy(imsitcp, org_tcp, sizeof(struct tcphdr));
 
@@ -111,13 +131,18 @@ void backward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct 
     struct tcphdr* sendtcp = (struct tcphdr *)malloc(sizeof(struct tcphdr));
 
     memcpy(sendeth, org_eth, ethhdr_size);
-    memcpy(sendip, org_ip, sizeof(struct iphdr));
-    memcpy(sendtcp, org_tcp, sizeof(struct tcphdr));
+    //memcpy(sendip, org_ip, sizeof(struct iphdr));
+    //memcpy(sendtcp, org_tcp, sizeof(struct tcphdr));
+    memset(sendip, 0, sizeof(struct iphdr));
+    memset(sendtcp, 0, sizeof(struct tcphdr));
 
     memcpy(sendeth->src_host, mac, 6);
     memcpy(sendeth->dst_host, org_eth->src_host, 6);
+
+    sendip->info = org_ip->info;
     sendip->len = htons(sizeof(struct iphdr) + sizeof(struct tcphdr) + 10);
     sendip->ttl = 128;
+    sendip->protocol = org_ip->protocol;
     sendip->src_ip = org_ip->dst_ip;
     sendip->dst_ip = org_ip->src_ip;
 
@@ -133,7 +158,10 @@ void backward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct 
     sendtcp->dst_port = org_tcp->src_port;
     sendtcp->seq = org_tcp->ack;
     sendtcp->ack = htonl(ntohl(org_tcp->seq) + org_datalen);
+    sendtcp->len = org_tcp->len;
+    printf("%x\n", org_tcp->len);
     sendtcp->flag = 0x11; // flag : 010001, fin, ack flag set
+    sendtcp->window_size = org_tcp->window_size;
 
     uint8_t imsitcp[sizeof(struct tcphdr) + 10];
 
