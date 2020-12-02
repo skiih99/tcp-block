@@ -3,7 +3,7 @@
 int main(int argc, char* argv[]) {
     uint8_t mac[6];
     uint8_t pattern[2048];
-
+    
     if  (argc != 3) {
         usage();
         return -1;

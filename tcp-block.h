@@ -49,6 +49,8 @@ struct tcphdr {
 
 using namespace std;
 
+
+
 void usage();
 void get_my_mac(uint8_t* macaddr, char* dev);
 void block_process(pcap_t* handle, uint8_t* mac, uint8_t* pattern, int pattern_len);
@@ -58,4 +60,6 @@ void backward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet,
         struct ethhdr* org_eth, struct iphdr* org_ip, struct tcphdr* org_tcp);
 bool check_pattern(uint8_t* data, int size, uint8_t* pattern, int pattern_len);
 uint16_t checksum_ip(struct iphdr *data, int len);
-uint16_t checksum_tcp(uint8_t* tcp_data, struct iphdr *ip_data, int tcp_len, int data_len);
+uint16_t checksum_tcp(uint16_t* tcp_data, struct iphdr *ip_data, int tcp_len, int data_len);
+
+
