@@ -78,7 +78,7 @@ void forward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct e
     uint16_t temp = htons(checksum_ip(sendip, sizeof(struct iphdr)));
     sendip->checksum = temp;
     sendtcp->seq = htonl(ntohl(org_tcp->seq) + org_datalen);
-    sendtcp->flag = 0x14; // flag : 010100
+    sendtcp->flag = 0x04; // flag : 000100, rst
     uint8_t imsitcp[org_tcplen];
     memcpy(imsitcp, org_tcp, sizeof(struct tcphdr));
 
@@ -116,10 +116,14 @@ void backward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct 
 
     memcpy(sendeth->src_host, mac, 6);
     memcpy(sendeth->dst_host, org_eth->src_host, 6);
-    sendip->len = htons(sizeof(struct iphdr) + sizeof(struct tcphdr)) + 10;
+    sendip->len = htons(sizeof(struct iphdr) + sizeof(struct tcphdr) + 10);
     sendip->ttl = 128;
     sendip->src_ip = org_ip->dst_ip;
     sendip->dst_ip = org_ip->src_ip;
+
+    // uint8_t *printip;
+    // printip = (uint8_t *)&(sendip->src_ip);
+    // for(int i=0; i< 4; i++) printf("%u ", printip[i]);
 
     sendip->checksum = 0;
     uint16_t temp = htons(checksum_ip(sendip, sizeof(struct iphdr)));
@@ -129,8 +133,7 @@ void backward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct 
     sendtcp->dst_port = org_tcp->src_port;
     sendtcp->seq = org_tcp->ack;
     sendtcp->ack = htonl(ntohl(org_tcp->seq) + org_datalen);
-    sendtcp->flag = 0x11; // flag : 010001
-    //memcpy(sendpkt + ethhdr_size + sizeof(struct iphdr) + sizeof(struct tcphdr), msg, 10);
+    sendtcp->flag = 0x11; // flag : 010001, fin, ack flag set
 
     uint8_t imsitcp[sizeof(struct tcphdr) + 10];
 
@@ -171,11 +174,12 @@ uint16_t checksum_ip(struct iphdr *data, int len) {
     uint16_t* pkt16 = (uint16_t*) data;
     uint32_t result = 0;
     for(int i = 0; i < len/2; i++) {
-        result += pkt16[i];
+        result += ntohs(pkt16[i]);
     }
-    result = (result >> 16) + (result & 0xffff);
-    result += (result >> 16);
-    return (uint16_t)(~result);
+    while(result >> 16) {
+        result = (result & 0xFFFF) + (result >> 16);
+    }
+    return ~(uint16_t)result;
 }
 
 uint16_t checksum_tcp(uint8_t* tcp_data, struct iphdr *ip_data, int tcp_len, int data_len) {
@@ -189,11 +193,12 @@ uint16_t checksum_tcp(uint8_t* tcp_data, struct iphdr *ip_data, int tcp_len, int
     result += 6; //protocol
     result += (uint16_t)(tcp_len + data_len);
     for(int i = 0; i < (tcp_len + data_len)/2; i++) {
-        result += pkt16[i];
+        result += ntohs(pkt16[i]);
     }
 
-    result = (result >> 16) + (result & 0xffff);
-    result += (result >> 16);
-    return (uint16_t)(~result);
+    while(result >> 16) {
+        result = (result & 0xFFFF) + (result >> 16);
+    }
+    return ~(uint16_t)result;
 
 }
