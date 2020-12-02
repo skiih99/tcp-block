@@ -117,7 +117,6 @@ void forward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct e
 }
 
 void backward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct ethhdr* org_eth, struct iphdr* org_ip, struct tcphdr* org_tcp) {
-    char msg[11] = "Blocked!!!";
     int org_iplen = ((org_ip->info) & 0x0F) * 4;
     int org_tcplen = (((org_tcp->len) & 0xF0) >> 4) * 4;
     int org_totlen = ntohs(org_ip->len);
@@ -157,13 +156,14 @@ void backward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct 
     sendtcp->ack = htonl(ntohl(org_tcp->seq) + org_datalen);
     sendtcp->len = org_tcp->len;
     sendtcp->flag = 0x11; // flag : 010001, fin, ack flag set
-    sendtcp->window_size = htons(0xd431);
     sendtcp->checksum = 0;
+    sendtcp->window_size = org_tcp->window_size;
 
     uint16_t imsitcp[(sizeof(struct tcphdr) + 10) / 2];
 
+    char tmpmsg[11] = "Blocked!!!";
     memcpy(imsitcp, sendtcp, sizeof(struct tcphdr));
-    memcpy(imsitcp + sizeof(struct tcphdr), msg, 10);
+    memcpy(imsitcp + sizeof(struct tcphdr), tmpmsg, 10);
 
     uint16_t temp2 = htons(checksum_tcp(imsitcp, sendip, sizeof(struct tcphdr), 10));
     sendtcp->checksum = temp2;
@@ -171,7 +171,9 @@ void backward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct 
     memcpy(sendpkt, sendeth, sizeof(struct ethhdr));
     memcpy(sendpkt+ethhdr_size, sendip, sizeof(struct iphdr));
     memcpy(sendpkt+ethhdr_size+org_iplen, sendtcp, sizeof(struct tcphdr));
-    memcpy(sendpkt+ethhdr_size+org_iplen+org_tcplen, msg, 10);
+    char msg1[11] = "Blocked!!!";
+    printf("%s\n", msg1);
+    memcpy(sendpkt+ethhdr_size+org_iplen+org_tcplen, msg1, 10);
 
     int res2 = pcap_sendpacket(handle, sendpkt, ethhdr_size + org_iplen + org_tcplen + 10);
     if (res2 != 0) fprintf(stderr, "Send IP packet error!\n");
