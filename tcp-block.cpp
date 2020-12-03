@@ -114,6 +114,9 @@ void forward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct e
     int res2 = pcap_sendpacket(handle, sendpkt, ethhdr_size + org_iplen + org_tcplen);
     if (res2 != 0) fprintf(stderr, "Send IP packet error!\n");
 
+    free(sendeth);
+    free(sendip);
+    free(sendtcp);
 }
 
 void backward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct ethhdr* org_eth, struct iphdr* org_ip, struct tcphdr* org_tcp) {
@@ -177,6 +180,10 @@ void backward_sendpkt(pcap_t* handle, uint8_t* mac, uint8_t* org_packet, struct 
 
     int res2 = pcap_sendpacket(handle, sendpkt, ethhdr_size + org_iplen + org_tcplen + 10);
     if (res2 != 0) fprintf(stderr, "Send IP packet error!\n");
+
+    free(sendeth);
+    free(sendip);
+    free(sendtcp);
 
 }
 
